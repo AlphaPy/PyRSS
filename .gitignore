@@ -1,0 +1,15 @@
+ffmpeg.exe
+ffprobe.exe
+ffplay.exe
+**/to_play
+**/played
+**/favs
+**/.vscode
+**/__pycache__
+feeds.txt
+gadsg.py 
+pyrss.spec
+pyrss_old.py 
+test.py
+van.py
+db-pyrss.db

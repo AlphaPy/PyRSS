@@ -1,0 +1,8 @@
+pydub==0.24.1
+atoma==0.0.17
+pyvan==0.0.5
+requests==2.24.0
+mutagen==1.45.0
+urlextract==1.0.0
+pygame==1.9.6
+PySimpleGUI==4.26.0
