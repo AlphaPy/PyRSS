@@ -20,7 +20,7 @@ Just download the zip file and extract it where you want to use it.
 
 ## Built With
 
-* [Visual Studio Code](https://code.visualstudio.com/) - The web framework used
+* [Visual Studio Code](https://code.visualstudio.com/) - Love it!
 
 ## Contributing
 
