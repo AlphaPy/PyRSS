@@ -21,8 +21,6 @@ Just download the zip file and extract it where you want to use it.
 ## Built With
 
 * [Visual Studio Code](https://code.visualstudio.com/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
 
 ## Contributing
 
