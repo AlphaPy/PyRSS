@@ -1,4 +1,4 @@
-# PyRss
+# PyRSS
 
 This is an MP3 audio podcast aggregator that works specifically with xml feed files. For instance, "https://podcasts.files.bbci.co.uk/p05k5bq0.rss", "https://feeds.npr.org/344098539/podcast.xml" or "https://apps.jw.org/E_RSSMEDIAMAG?rln=E&rmn=g&rfm=mp3". Due to the variation in feed xml structure, it may not work for all feeds, so it's a WIP. If you find a feed it doesn't work for, ping me with the url and I'll see if I can add the structure to PyRss. Also, because pydub's AudioSegment functionality isn't great for larger files, I had to resort to using ffmpeg.exe for conversion, so this is a Windows only application for the moment.
 
