@@ -13,3 +13,4 @@ pyrss_old.py
 test.py
 van.py
 db-pyrss.db
+**/dist

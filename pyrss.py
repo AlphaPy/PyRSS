@@ -1,3 +1,5 @@
+from os import close
+import sys, os
 import multiprocessing as mp
 from re import sub
 import atoma
@@ -17,7 +19,7 @@ gui_queue = None
 
 
 
-# TODO set above to be gotten from box
+
 
 def pyrss_db_create():
     db = sqlite3.connect("db-pyrss.db") # Create db for storing name of first currently available feed item file so we know if we should download the feed or not
@@ -79,14 +81,21 @@ def pyrss_db_check(filename, feedtitle):
 
     
             
-def is_dir_half_full(path): 
+def is_dir_half_full(path):
     if os.path.exists(path) and not os.path.isfile(path):
         # If path exists and it's not a file 
         # Check for ogg files, that's all we want to know
-        if not any(fname.endswith(".ogg") for fname in os.listdir(path)):
-            return False
-        else:
+        can_play = False
+        for fname in os.listdir(path):
+            if fname.endswith("ogg") and os.path.getsize(f"{path}/{fname}") > 10:
+                can_play = True
+                break
+            else:
+                can_play = False
+        if can_play == True:
             return True
+        else:
+            return False
         # Check if the directory is empty or not empty
         # for filez in os.listdir(path):
         #     if ".ogg" in filez:
@@ -94,12 +103,13 @@ def is_dir_half_full(path):
         #     else:
         #         pass 
     else: 
-        return False 
+        return False
   
    
         
 
 def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_length, values):
+    old_file = ""
     for py_file in os.listdir("to_play"):
         if py_file.endswith(".ogg"):
             bar_length = 0
@@ -120,12 +130,12 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
             #print(py_rss_ogg_len)
             
             
-            # TODO while not paused, increment the second indicator forward by one, but be sure if something goes wrong it can never exceed length found variable or program might crash. Never know what kind of clicky happy person might goof this player up.
-            # TODO make the buttons in the GUI do stuff, pause, mark favorite (favorite files are not removed from currently playing, we put z on the front of the file name and that puts it at the end of the list, ...what'd he say? He said... "Good idea!")
-            # TODO remember to unload the pygame mixer music when the file is done
+            
             
             pygame.mixer.init()
-            pygame.mixer.music.load(f"{to_play_dir}/{py_file}")
+            global music_file
+            music_file = open(f"{to_play_dir}/{py_file}")
+            pygame.mixer.music.load(music_file)
             pygame.mixer.music.play()
             
             bar_interval = 60/py_rss_ogg_len
@@ -136,9 +146,13 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
                 #print(pygame.mixer.music.get_pos())
                 bar_length = bar_length + bar_interval
                 player_position += 1
+                if old_file != "":
+                    os.remove(old_file)
+                    old_file = ""
                 #print(player_position)
                 event, values = window.read(timeout = 1000)
                 if event == PySimpleGUI.WIN_CLOSED:
+                    music_file.close()
                     break
                 if event == "Fav it!":
                     src = os.path.realpath(f"{to_play_dir}\\{py_file}")
@@ -177,6 +191,7 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
                     while True:
                         event, values = window.read(timeout = 250)
                         if event == PySimpleGUI.WIN_CLOSED:
+                            music_file.close()
                             break
                         elif event == "Play":
                             player_stop == 0
@@ -188,6 +203,7 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
                             window['Fav it!'].update(disabled = True)
                             player_stop = 1
                             window["percentage"].update_bar(bar_length)
+                            music_file.close()
                             break
                         else:
                             pass
@@ -196,6 +212,7 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
                         window['Stop'].update(disabled = True)
                         py_rss_status = "Status: Waiting for input"
                         window["py_rss_status"].update(f"{py_rss_status}")
+                        music_file.close()
                         return
                     else:
                         player_stop = 0
@@ -214,6 +231,7 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
                     window['Stop'].update(disabled = True)
                     window['Fav it!'].update(disabled = True)
                     pygame.mixer.music.stop()
+                    music_file.close()
                     bar_length = 0
                     player_position = 0
                     window["percentage"].update_bar(bar_length)
@@ -226,11 +244,14 @@ def play_files(to_play_dir, played_dir, favs_dir, window, py_rss_status, bar_len
                     # I... didn't know if this would work or not but it does, awesome!
                     shutil.copy(src, dst)
                     window['Fav it!'].update(disabled=True)
-        pygame.mixer.music.stop()
-        pygame.mixer.music.unload() 
+        pygame.mixer.music.stop() 
+        music_file.close()
         src = os.path.realpath(f"{to_play_dir}\\{py_file}")
-        dst = os.path.realpath(f"{played_dir}")
-        shutil.move(src, dst)
+        dst = os.path.realpath(f"{played_dir}\\{py_file}")
+        shutil.copy(src, dst)
+        old_file = src
+            
+        
         
 class ScreenPython:
     
@@ -279,8 +300,14 @@ class ScreenPython:
             
             # If directory not empty
             if is_dir_half_full(to_play_dir):
-                window['Play'].update(disabled=False)
-                window['Play All Files'].update(disabled=False)
+                if converting_status == False:
+                    #print(f"converting status is {converting_status}")
+                    window['Play'].update(disabled=False)
+                    window['Play All Files'].update(disabled=False)
+                else:
+                    #print(f"converting status is {converting_status}")
+                    window['Play'].update(disabled=True)
+                    window['Play All Files'].update(disabled=True)
             else:
                 window['Play'].update(disabled=True)
                 window['Play All Files'].update(disabled=True)
@@ -303,7 +330,7 @@ class ScreenPython:
                 window["py_rss_status"].update(f"{py_rss_status}")
                 if values[1] == "" and event == "Download":
                     py_rss_status = f"Status: Sorry, please enter max download items" # Apologize, retry
-                    # TODO change below as messages to gui below
+                    
                     window['Download'].update(disabled=False) # Enable download button so they can try again
                     window["py_rss_status"].update(f"{py_rss_status}") # Set status
                     window.refresh() # Refresh window
@@ -318,7 +345,7 @@ class ScreenPython:
                 if failed_feed == 1:
                     print("failed feed")
                     py_rss_status = f"Status: Sorry, there was a problem with at least one feed" # Apologize, retry
-                    # TODO change below as messages to gui below
+                    
                     window['Download'].update(disabled=False) # Enable download button so they can try again
                     window["py_rss_status"].update(f"{py_rss_status}") # Set status
                     window.refresh() # Refresh window
@@ -332,7 +359,7 @@ class ScreenPython:
                 window.refresh()   
                 
                 #feed_getter.start()
-                if is_dir_half_full(to_play_dir):
+                if is_dir_half_full(to_play_dir) and converting_status == False:
                     window['Play'].update(disabled=False)
                     window['Play All Files'].update(disabled=False)
                 else:
@@ -354,6 +381,10 @@ class ScreenPython:
                 pass
             
             if converting_status:
+                window['Play All Files'].update(disabled=True)
+                window['Play'].update(disabled=True)
+                window['Download'].update(disabled=True)
+                window['Download using feeds file'].update(disabled=True)
                 try:
                     message = gui_queue.get_nowait()    # see if something has been posted to Queue
                 except Exception as e:                     # get_nowait() will get exception when Queue is empty
@@ -362,6 +393,8 @@ class ScreenPython:
                     print(f'Got a queue message {message}!!!')
                     py_rss_status = message
                     window["py_rss_status"].update(f"{py_rss_status}")
+                    if message == "Status: Ready to play files!":
+                        converting_status = False
                 
             
         window.close()
@@ -413,7 +446,7 @@ def parse_and_download(window, event, values, to_play_dir, download_percentage):
         except (requests.exceptions.InvalidSchema, requests.exceptions.MissingSchema): # This is triggered if the feed isn't valid
             failed_feed = 1
             py_rss_status = f"Status: Sorry, {feed} is not a valid feed, please try again" # Apologize, retry
-            # TODO change below as messages to gui below
+            
             window['Download'].update(disabled=False) # Enable download button so they can try again
             window["py_rss_status"].update(f"{py_rss_status}") # Set status
             window.refresh() # Refresh window
@@ -427,7 +460,7 @@ def parse_and_download(window, event, values, to_play_dir, download_percentage):
         except (atoma.exceptions.FeedParseError):
             failed_feed = 1
             py_rss_status = f"Status: Sorry, {feed} is not a valid feed, please try again" # Apologize, retry
-            # TODO change below as messages to gui below
+            
             window['Download'].update(disabled=False) # Enable download button so they can try again
             window["py_rss_status"].update(f"{py_rss_status}") # Set status
             window.refresh() # Refresh window
@@ -502,9 +535,9 @@ def parse_and_download(window, event, values, to_play_dir, download_percentage):
                     rss_file_response = requests.get(entries.link)
             # http://www.podcast411.com/new_demo_feed.xml https://podcasts.files.bbci.co.uk/p05k5bq0.rss
             # Get the file name element response
-            #rss_file_name_unparsed = rss_file_response.headers["content-disposition"] # TODO REMOVE WE DON'T NEED IT
+            #rss_file_name_unparsed = rss_file_response.headers["content-disposition"] 
             # Parse the file name out of it
-            #rss_file_name_partly_parsed = re.findall("filename=(.+)", rss_file_name_unparsed)[0] # TODO REMOVE WE DON'T NEED IT
+            #rss_file_name_partly_parsed = re.findall("filename=(.+)", rss_file_name_unparsed)[0] 
             # Strip quotation marks, not needed
             
             #print(rss_file_name)
@@ -518,7 +551,7 @@ def parse_and_download(window, event, values, to_play_dir, download_percentage):
             #if pyrss_db_check(rss_file_name, py_rss_feed.title) == 1: # Don't need here anymore
             # returns from function pyrss_db_check(rss_file_name)
             if n == len(feeds):
-                # TODO change all below messages GUI
+                
                 py_rss_status = f"Status: You're all caught up on feeds!"
                 window['Download'].update(disabled=False)
                 window["py_rss_status"].update(f"{py_rss_status}")
@@ -530,7 +563,7 @@ def parse_and_download(window, event, values, to_play_dir, download_percentage):
             # download the files to the "to_play" directory
             # Setting the timeout to 30 seconds in case they're bigger files
             with open(f"{to_play_dir}/{rss_file_name}", "wb") as f: # wb, b for binary
-                for chunk in rss_file_response.iter_content(chunk_size=500000):
+                for chunk in rss_file_response.iter_content(chunk_size=5120):
                     if not chunk:
                         break
                     
@@ -585,7 +618,7 @@ def convert_them_all(gui_queue, to_play_dir, percentage):
                 #del the_ogg_conversion
                 #gc.collect()
                 # Remove the old file
-                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "warning", "-n", "-i", f"{to_play_dir}/{py_file}", "-c:a", "libvorbis", "-q:a", "4", f"{to_play_dir}/{rss_ogg_name}"])
+                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "warning", "-n", "-i", f"{to_play_dir}/{py_file}", "-c:a", "libvorbis", "-q:a", "4", f"{to_play_dir}/{rss_ogg_name}"], shell=True)
                 os.remove(f"{to_play_dir}/{py_file}")
                 percentage += percentage_point
         
@@ -603,5 +636,6 @@ if __name__ == '__main__':
     main()
     
     
-    # TODO remove file after played to played folder
+    # TODO put a reset button in to remove all played episodes data
+    # TODO error handling for garbage in feeds.txt file, number of feeds not an int, etc
     
