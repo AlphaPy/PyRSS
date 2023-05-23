@@ -1,5 +1,5 @@
 mutagen==1.45.0
-requests==2.24.0
+requests==2.31.0
 pyvan==0.0.5
 atoma==0.0.17
 pygame==1.9.6
